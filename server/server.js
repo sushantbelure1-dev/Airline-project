@@ -53,23 +53,87 @@ app.post('/api/auth/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
     }
 
-    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
-    if (existing) {
+    const existing = db.prepare('SELECT id, isVerified FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (existing && existing.isVerified === 1) {
       return res.status(400).json({ success: false, message: 'An account with this email already exists.' });
     }
+
+    // Generate 6-Digit Verification OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 mins
 
     const salt = bcrypt.genSaltSync(10);
     const hashedPassword = bcrypt.hashSync(password, salt);
 
-    const result = db.prepare(`
-      INSERT INTO users (name, email, password, role)
-      VALUES (?, ?, ?, 'USER')
-    `).run(name.trim(), email.toLowerCase().trim(), hashedPassword);
+    if (existing && existing.isVerified === 0) {
+      // Update existing unverified account with new credentials and OTP
+      db.prepare(`
+        UPDATE users SET name = ?, password = ?, otpCode = ?, otpExpiresAt = ? WHERE id = ?
+      `).run(name.trim(), hashedPassword, otpCode, otpExpiresAt, existing.id);
+    } else {
+      // Create new user account marked as unverified
+      db.prepare(`
+        INSERT INTO users (name, email, password, role, isVerified, otpCode, otpExpiresAt)
+        VALUES (?, ?, ?, 'USER', 0, ?, ?)
+      `).run(name.trim(), email.toLowerCase().trim(), hashedPassword, otpCode, otpExpiresAt);
+    }
 
-    const user = { id: result.lastInsertRowid, name: name.trim(), email: email.toLowerCase().trim(), role: 'USER' };
-    const token = jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
+    res.status(201).json({ 
+      success: true, 
+      requiresOtp: true, 
+      email: email.toLowerCase().trim(), 
+      otpCode, 
+      message: `A 6-digit verification code (${otpCode}) has been sent to ${email.toLowerCase().trim()}` 
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
-    res.status(201).json({ success: true, message: 'Registration successful', user, token });
+app.post('/api/auth/verify-otp', async (req, res) => {
+  try {
+    const { email, otpCode } = req.body;
+    if (!email || !otpCode) {
+      return res.status(400).json({ success: false, message: 'Email and OTP verification code are required.' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    if (user.otpCode !== otpCode.trim()) {
+      return res.status(400).json({ success: false, message: 'Invalid 6-digit OTP code. Please check and try again.' });
+    }
+
+    // Mark user as verified
+    db.prepare('UPDATE users SET isVerified = 1, otpCode = NULL, otpExpiresAt = NULL WHERE id = ?').run(user.id);
+
+    const userData = { id: user.id, name: user.name, email: user.email, role: user.role };
+    const token = jwt.sign(userData, JWT_SECRET, { expiresIn: '7d' });
+
+    res.json({ success: true, message: 'Email verified successfully! Account activated.', user: userData, token });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+app.post('/api/auth/resend-otp', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found.' });
+    }
+
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    db.prepare('UPDATE users SET otpCode = ? WHERE id = ?').run(newOtp, user.id);
+
+    res.json({ success: true, otpCode: newOtp, message: `New verification OTP code (${newOtp}) sent to ${email}` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -92,6 +156,18 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password.' });
     }
 
+    if (user.isVerified === 0) {
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+      db.prepare('UPDATE users SET otpCode = ? WHERE id = ?').run(otpCode, user.id);
+      return res.status(403).json({ 
+        success: false, 
+        requiresOtp: true, 
+        email: user.email, 
+        otpCode,
+        message: 'Your email is not verified yet. Please enter the 6-digit OTP.' 
+      });
+    }
+
     const userData = { id: user.id, name: user.name, email: user.email, role: user.role };
     const token = jwt.sign(userData, JWT_SECRET, { expiresIn: '7d' });
 
@@ -100,6 +176,7 @@ app.post('/api/auth/login', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
 
 app.get('/api/auth/me', authenticateToken, (req, res) => {
   const user = db.prepare('SELECT id, name, email, role, createdAt FROM users WHERE id = ?').get(req.user.id);

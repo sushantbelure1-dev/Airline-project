@@ -21,8 +21,12 @@ db.exec(`
     email TEXT UNIQUE NOT NULL,
     password TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'USER', -- 'ADMIN' or 'USER'
+    isVerified INTEGER NOT NULL DEFAULT 1, -- 1 = verified, 0 = pending OTP
+    otpCode TEXT,
+    otpExpiresAt DATETIME,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
 
   -- Global & configurable Pricing, Fuel, Carbon and AI Configuration
   CREATE TABLE IF NOT EXISTS pricing_config (

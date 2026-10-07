@@ -4,16 +4,21 @@ import { api } from './api';
 
 export default function AuthModal({ onLoginSuccess }) {
   const [isRegister, setIsRegister] = useState(false);
+  const [step, setStep] = useState('auth'); // 'auth' or 'otp'
   const [role, setRole] = useState('ADMIN'); // 'ADMIN' or 'USER' for tab prefill
   const [name, setName] = useState('');
   const [email, setEmail] = useState('admin@jalgaon.aero');
   const [password, setPassword] = useState('Admin@12345');
+  const [otpCode, setOtpCode] = useState('');
+  const [sentOtpCode, setSentOtpCode] = useState('');
+  const [otpMessage, setOtpMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleRoleSelect = (selectedRole) => {
     setRole(selectedRole);
     setError('');
+    setStep('auth');
     if (selectedRole === 'ADMIN') {
       setIsRegister(false);
       setEmail('admin@jalgaon.aero');
@@ -41,7 +46,11 @@ export default function AuthModal({ onLoginSuccess }) {
           return;
         }
         const data = await api.register(name, email, password);
-        if (data.success) {
+        if (data.success && data.requiresOtp) {
+          setStep('otp');
+          setSentOtpCode(data.otpCode || '');
+          setOtpMessage(data.message || 'Verification code sent to your email.');
+        } else if (data.success) {
           localStorage.setItem('jalgaon_airline_token', data.token);
           onLoginSuccess(data.user);
         } else {
@@ -65,6 +74,10 @@ export default function AuthModal({ onLoginSuccess }) {
         if (data.success) {
           localStorage.setItem('jalgaon_airline_token', data.token);
           onLoginSuccess(data.user);
+        } else if (data.requiresOtp) {
+          setStep('otp');
+          setSentOtpCode(data.otpCode || '');
+          setOtpMessage(data.message || 'Your account requires email verification.');
         } else {
           setError(data.message || 'Invalid credentials');
         }
@@ -75,6 +88,44 @@ export default function AuthModal({ onLoginSuccess }) {
       setLoading(false);
     }
   };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.length < 6) {
+      setError('Please enter the complete 6-digit OTP code.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = await api.verifyOtp(email, otpCode);
+      if (data.success) {
+        localStorage.setItem('jalgaon_airline_token', data.token);
+        onLoginSuccess(data.user);
+      } else {
+        setError(data.message || 'Verification failed. Invalid OTP.');
+      }
+    } catch (err) {
+      setError(err.message || 'Error verifying OTP');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setError('');
+    try {
+      const res = await api.resendOtp(email);
+      if (res.success) {
+        setSentOtpCode(res.otpCode || '');
+        setOtpMessage(`New verification code sent! (${res.otpCode})`);
+      }
+    } catch (err) {
+      setError('Failed to resend OTP');
+    }
+  };
+
 
   return (
     <div style={{
@@ -213,19 +264,141 @@ export default function AuthModal({ onLoginSuccess }) {
           </div>
         )}
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {isRegister && (
+        {/* STEP 2: OTP VERIFICATION FORM */}
+        {step === 'otp' ? (
+          <form onSubmit={handleVerifyOtp} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ padding: '12px 14px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.25)', fontSize: '12px', color: '#cbd5e1' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', fontWeight: 700, marginBottom: '4px' }}>
+                <Key size={16} /> Enter 6-Digit Email OTP
+              </div>
+              {otpMessage || `Verification code sent to ${email}`}
+            </div>
+
+            {sentOtpCode && (
+              <div style={{ padding: '8px 12px', background: 'rgba(16, 185, 129, 0.12)', border: '1px solid rgba(16, 185, 129, 0.3)', borderRadius: '8px', fontSize: '12px', color: '#10b981', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Demo Email OTP Code: <strong>{sentOtpCode}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => setOtpCode(sentOtpCode)}
+                  style={{ padding: '2px 8px', background: '#10b981', color: '#000', border: 'none', borderRadius: '4px', fontSize: '10px', fontWeight: 800, cursor: 'pointer' }}
+                >
+                  Auto-Fill OTP
+                </button>
+              </div>
+            )}
+
             <div>
               <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
-                Full Name
+                Verification OTP Code
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   type="text"
+                  maxLength={6}
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px 12px 38px',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '10px',
+                    color: '#38bdf8',
+                    fontSize: '18px',
+                    fontWeight: 800,
+                    letterSpacing: '4px',
+                    outline: 'none',
+                    textAlign: 'center'
+                  }}
+                  placeholder="123456"
+                />
+                <Key size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '16px' }} />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                marginTop: '8px',
+                padding: '14px',
+                borderRadius: '10px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                color: '#ffffff',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: loading ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
+              }}
+            >
+              <CheckCircle size={16} />
+              <span>{loading ? 'Verifying OTP...' : 'Verify Email & Activate Account'}</span>
+            </button>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '10px', fontSize: '12px' }}>
+              <button
+                type="button"
+                onClick={handleResend}
+                style={{ background: 'none', border: 'none', color: '#38bdf8', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Resend Code
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStep('auth'); setError(''); }}
+                style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}
+              >
+                Back to Registration
+              </button>
+            </div>
+          </form>
+        ) : (
+          /* STEP 1: LOGIN / REGISTER FORM */
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {isRegister && (
+              <div>
+                <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                  Full Name
+                </label>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 14px 12px 38px',
+                      background: 'rgba(255, 255, 255, 0.04)',
+                      border: '1px solid var(--border-subtle)',
+                      borderRadius: '10px',
+                      color: '#f8fafc',
+                      fontSize: '13px',
+                      outline: 'none'
+                    }}
+                    placeholder="e.g. Rahul Sharma"
+                  />
+                  <User size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '14px' }} />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                Email Address
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   style={{
                     width: '100%',
                     padding: '12px 14px 12px 38px',
@@ -236,121 +409,97 @@ export default function AuthModal({ onLoginSuccess }) {
                     fontSize: '13px',
                     outline: 'none'
                   }}
-                  placeholder="e.g. Rahul Sharma"
+                  placeholder="name@email.com"
                 />
-                <User size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '14px' }} />
+                <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '14px' }} />
               </div>
             </div>
-          )}
 
-          <div>
-            <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
-              Email Address
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px 12px 38px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '10px',
-                  color: '#f8fafc',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
-                placeholder="name@email.com"
-              />
-              <Mail size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '14px' }} />
+            <div>
+              <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
+                Password
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px 12px 38px',
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: '10px',
+                    color: '#f8fafc',
+                    fontSize: '13px',
+                    outline: 'none'
+                  }}
+                  placeholder="••••••••"
+                />
+                <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '14px' }} />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>
-              Password
-            </label>
-            <div style={{ position: 'relative' }}>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '12px 14px 12px 38px',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid var(--border-subtle)',
-                  borderRadius: '10px',
-                  color: '#f8fafc',
-                  fontSize: '13px',
-                  outline: 'none'
-                }}
-                placeholder="••••••••"
-              />
-              <Lock size={16} color="#64748b" style={{ position: 'absolute', left: '12px', top: '14px' }} />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            style={{
-              marginTop: '8px',
-              padding: '14px',
-              borderRadius: '10px',
-              border: 'none',
-              background: role === 'ADMIN'
-                ? 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)'
-                : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-              color: '#ffffff',
-              fontSize: '14px',
-              fontWeight: 700,
-              cursor: loading ? 'wait' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
-            }}
-          >
-            <span>{loading ? 'Authenticating...' : isRegister ? 'Create Account' : `Sign In as ${role}`}</span>
-            <ArrowRight size={16} />
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              style={{
+                marginTop: '8px',
+                padding: '14px',
+                borderRadius: '10px',
+                border: 'none',
+                background: role === 'ADMIN'
+                  ? 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)'
+                  : 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                color: '#ffffff',
+                fontSize: '14px',
+                fontWeight: 700,
+                cursor: loading ? 'wait' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.4)'
+              }}
+            >
+              <span>{loading ? 'Authenticating...' : isRegister ? 'Continue to Email OTP' : `Sign In as ${role}`}</span>
+              <ArrowRight size={16} />
+            </button>
+          </form>
+        )}
 
         {/* Switch Login / Register for Passengers */}
-        <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
-          {isRegister ? (
-            <span>
-              Already registered?{' '}
-              <button
-                type="button"
-                onClick={() => { setIsRegister(false); setError(''); }}
-                style={{ background: 'none', border: 'none', color: '#38bdf8', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Sign In
-              </button>
-            </span>
-          ) : (
-            <span>
-              New passenger?{' '}
-              <button
-                type="button"
-                onClick={() => { setIsRegister(true); setRole('USER'); setError(''); setEmail(''); setPassword(''); }}
-                style={{ background: 'none', border: 'none', color: '#10b981', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Register Here
-              </button>
-            </span>
-          )}
-        </div>
+        {step === 'auth' && (
+          <div style={{ marginTop: '20px', textAlign: 'center', fontSize: '12px', color: '#94a3b8' }}>
+            {isRegister ? (
+              <span>
+                Already registered?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsRegister(false); setError(''); }}
+                  style={{ background: 'none', border: 'none', color: '#38bdf8', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Sign In
+                </button>
+              </span>
+            ) : (
+              <span>
+                New passenger?{' '}
+                <button
+                  type="button"
+                  onClick={() => { setIsRegister(true); setRole('USER'); setError(''); setEmail(''); setPassword(''); }}
+                  style={{ background: 'none', border: 'none', color: '#10b981', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Register Here
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Admin Quick Credentials Info */}
-        {!isRegister && role === 'ADMIN' && (
+        {step === 'auth' && !isRegister && role === 'ADMIN' && (
           <div style={{ marginTop: '16px', padding: '10px 14px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: '8px', border: '1px solid rgba(56, 189, 248, 0.2)', fontSize: '11px', color: '#cbd5e1' }}>
             <strong>Admin Login:</strong> admin@jalgaon.aero / Admin@12345
           </div>
@@ -359,3 +508,4 @@ export default function AuthModal({ onLoginSuccess }) {
     </div>
   );
 }
+

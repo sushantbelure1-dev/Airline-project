@@ -115,25 +115,67 @@ export const api = {
     }, async () => {
       const users = mockStore.getUsers();
       const normEmail = email.toLowerCase().trim();
-      if (users.find(u => u.email.toLowerCase() === normEmail)) {
+      if (users.find(u => u.email.toLowerCase() === normEmail && u.isVerified !== 0)) {
         return { success: false, message: 'An account with this email already exists.' };
       }
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
       const newUser = {
         id: users.length + 1,
         name: name.trim(),
         email: normEmail,
         password,
         role: 'USER',
+        isVerified: 0,
+        otpCode,
         createdAt: new Date().toISOString()
       };
       users.push(newUser);
       mockStore.setUsers(users);
 
-      const mockToken = `mock-token-${btoa(JSON.stringify(newUser))}`;
-      localStorage.setItem('jalgaon_airline_current_user', JSON.stringify(newUser));
-      return { success: true, message: 'Registration successful', user: newUser, token: mockToken };
+      return { 
+        success: true, 
+        requiresOtp: true, 
+        email: normEmail, 
+        otpCode, 
+        message: `A 6-digit verification code (${otpCode}) has been sent to ${normEmail}` 
+      };
     });
   },
+
+  async verifyOtp(email, otpCode) {
+    return safeFetch('/auth/verify-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, otpCode })
+    }, async () => {
+      const users = mockStore.getUsers();
+      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase().trim());
+      if (!user) return { success: false, message: 'User account not found.' };
+      if (user.otpCode && user.otpCode !== otpCode.trim()) {
+        return { success: false, message: 'Invalid 6-digit OTP code.' };
+      }
+      user.isVerified = 1;
+      mockStore.setUsers(users);
+
+      const userData = { id: user.id, name: user.name, email: user.email, role: user.role };
+      const mockToken = `mock-token-${btoa(JSON.stringify(userData))}`;
+      localStorage.setItem('jalgaon_airline_current_user', JSON.stringify(userData));
+
+      return { success: true, message: 'Email verified successfully! Account activated.', user: userData, token: mockToken };
+    });
+  },
+
+  async resendOtp(email) {
+    return safeFetch('/auth/resend-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    }, async () => {
+      const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      return { success: true, otpCode: newOtp, message: `New verification OTP (${newOtp}) sent to ${email}` };
+    });
+  },
+
 
   async getMe() {
     return safeFetch('/auth/me', {
