@@ -48,7 +48,7 @@ export default function App() {
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* Top Application Header */}
       <header style={{
-        background: 'rgba(10, 17, 34, 0.95)',
+        background: 'rgba(11, 19, 41, 0.96)',
         borderBottom: '1px solid var(--border-subtle)',
         backdropFilter: 'blur(16px)',
         position: 'sticky',
@@ -60,41 +60,44 @@ export default function App() {
         alignItems: 'center'
       }}>
         {/* Logo and Brand */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
-            width: '38px',
-            height: '38px',
+            width: '40px',
+            height: '40px',
             borderRadius: '10px',
-            background: 'linear-gradient(135deg, #38bdf8 0%, #0284c7 60%, #0f172a 100%)',
+            background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 15px rgba(56, 189, 248, 0.35)'
+            boxShadow: '0 4px 14px rgba(2, 132, 199, 0.4)'
           }}>
-            <Plane color="#ffffff" size={20} style={{ transform: 'rotate(-45deg)' }} />
+            <Plane color="#ffffff" size={22} style={{ transform: 'rotate(-45deg)' }} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', background: 'linear-gradient(to right, #ffffff, #38bdf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                JALGAON AIRLINE
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h1 style={{ fontSize: '18px', fontWeight: 800, letterSpacing: '-0.02em', color: '#ffffff' }}>
+                JALGAON AIRLINES
               </h1>
-              <span style={{
-                fontSize: '9px',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                background: 'rgba(56, 189, 248, 0.15)',
-                color: '#38bdf8',
-                padding: '2px 6px',
-                borderRadius: '12px',
-                border: '1px solid rgba(56, 189, 248, 0.3)'
-              }}>
-                Airport Hub (JLG)
+              <span className="badge-ontime">
+                JLG AIRPORT HUB
               </span>
             </div>
-            <p style={{ fontSize: '11px', color: '#64748b' }}>
-              Automated Distance, Fuel Rate & Flight Reservation Engine
+            <p style={{ fontSize: '11px', color: '#94a3b8' }}>
+              Commercial Operations, Dynamic Fare Engine & Passenger Portal
             </p>
           </div>
+        </div>
+
+        {/* Live Flight Information Ticker */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255, 255, 255, 0.04)', padding: '6px 14px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '11px' }}>
+          <span style={{ color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px' }}>
+            ✈️ FLIGHT STATUS:
+          </span>
+          <span style={{ color: '#cbd5e1' }}><strong style={{ color: '#fff' }}>JLG ➔ BOM:</strong> <span style={{ color: '#34d399' }}>ON TIME</span></span>
+          <span style={{ color: '#475569' }}>|</span>
+          <span style={{ color: '#cbd5e1' }}><strong style={{ color: '#fff' }}>JLG ➔ DEL:</strong> <span style={{ color: '#38bdf8' }}>BOARDING</span></span>
+          <span style={{ color: '#475569' }}>|</span>
+          <span style={{ color: '#cbd5e1' }}><strong style={{ color: '#fff' }}>JLG ➔ PNQ:</strong> <span style={{ color: '#34d399' }}>ON TIME</span></span>
         </div>
 
         {/* Database & Active User Role Profile */}
@@ -102,7 +105,7 @@ export default function App() {
           <div className="glass-panel" style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Database size={13} color="#38bdf8" />
             <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600 }}>
-              {typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? 'Cloud System Online' : 'SQLite Active (:5000)'}
+              {typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? 'Cloud Production Server' : 'SQLite Server Active'}
             </span>
           </div>
 
@@ -116,8 +119,7 @@ export default function App() {
                 color: currentUser.role === 'ADMIN' ? '#38bdf8' :
                        currentUser.role === 'CREW' ? '#ec4899' : '#10b981'
               }}>
-                {currentUser.role === 'ADMIN' ? <ShieldCheck size={16} /> :
-                 currentUser.role === 'CREW' ? <UserIcon size={16} /> : <UserIcon size={16} />}
+                {currentUser.role === 'ADMIN' ? <ShieldCheck size={16} /> : <UserIcon size={16} />}
               </div>
               <div>
                 <div style={{ fontSize: '12px', fontWeight: 700, color: '#f8fafc' }}>{currentUser.name}</div>
@@ -148,8 +150,8 @@ export default function App() {
                 padding: '8px 16px',
                 borderRadius: '8px',
                 border: 'none',
-                background: '#38bdf8',
-                color: '#070b14',
+                background: '#0284c7',
+                color: '#ffffff',
                 fontWeight: 700,
                 fontSize: '12px',
                 cursor: 'pointer'
@@ -160,6 +162,7 @@ export default function App() {
           )}
         </div>
       </header>
+
 
       {/* Main Body: 3-Panel Role Routing */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

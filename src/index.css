@@ -4,31 +4,29 @@
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Theme Colors */
-  --bg-primary: #070b14;
-  --bg-secondary: #0d1527;
-  --bg-card: rgba(16, 26, 48, 0.7);
-  --bg-card-hover: rgba(22, 36, 68, 0.85);
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(56, 189, 248, 0.4);
+  /* Real-world Commercial Aviation Theme Palette */
+  --bg-primary: #0b1329;
+  --bg-secondary: #111c38;
+  --bg-card: rgba(18, 30, 58, 0.75);
+  --bg-card-hover: rgba(26, 42, 80, 0.9);
+  --border-subtle: rgba(255, 255, 255, 0.1);
+  --border-focus: #0284c7;
 
-  /* Accents */
+  /* Professional Aviation Accents */
   --accent-cyan: #38bdf8;
-  --accent-cyan-glow: rgba(56, 189, 248, 0.25);
+  --accent-blue: #0284c7;
   --accent-emerald: #10b981;
-  --accent-emerald-glow: rgba(16, 185, 129, 0.25);
   --accent-violet: #818cf8;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
 
-  /* Text Colors */
+  /* Text Hierarchy */
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
   
-  /* Glassmorphism */
-  --glass-blur: blur(16px);
-  --glass-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  /* Precision Elevation & Shadows */
+  --card-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 * {
@@ -44,9 +42,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.08) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
-    radial-gradient(at 50% 100%, rgba(129, 140, 248, 0.06) 0px, transparent 50%);
+    radial-gradient(at 10% 0%, rgba(2, 132, 199, 0.12) 0px, transparent 50%),
+    radial-gradient(at 90% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 100%, rgba(15, 23, 42, 0.9) 0px, transparent 100%);
   background-attachment: fixed;
 }
 
@@ -63,52 +61,66 @@ body {
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #0284c7;
 }
 
-/* Glassmorphism Containers */
+/* Professional Enterprise Cards */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  box-shadow: var(--glass-shadow);
-  transition: all 0.25s ease;
+  border-radius: 14px;
+  box-shadow: var(--card-shadow);
+  transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
 .glass-panel:hover {
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(56, 189, 248, 0.3);
 }
 
 .glass-pill {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--border-subtle);
   border-radius: 9999px;
 }
 
-/* Glowing text and buttons */
-.glow-cyan {
-  text-shadow: 0 0 16px var(--accent-cyan-glow);
+/* Flight Status Badges */
+.badge-ontime {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
-.glow-emerald {
-  text-shadow: 0 0 16px var(--accent-emerald-glow);
+.badge-boarding {
+  background: rgba(56, 189, 248, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
-/* Pulse animation */
-@keyframes radar-pulse {
-  0% { transform: scale(0.95); opacity: 0.8; }
-  50% { transform: scale(1.05); opacity: 0.3; }
-  100% { transform: scale(0.95); opacity: 0.8; }
-}
-
-.pulse-radar {
-  animation: radar-pulse 3s infinite ease-in-out;
+.badge-delayed {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 /* Code and numbers font */
 .mono-num {
   font-family: var(--font-mono);
 }
+

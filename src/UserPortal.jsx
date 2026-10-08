@@ -214,47 +214,59 @@ export default function UserPortal({ user, onLogout }) {
             <div className="glass-panel" style={{ padding: '24px', marginBottom: '28px' }}>
               <form onSubmit={handleSearch} style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.2fr 1fr 0.8fr auto', gap: '14px', alignItems: 'flex-end' }}>
                 <div>
-                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>From (Source)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Jalgaon, Mumbai, Delhi..."
+                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 600 }}>From (Origin)</label>
+                  <select
                     value={searchParams.from}
                     onChange={(e) => setSearchParams({ ...searchParams, from: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: 'rgba(255, 255, 255, 0.05)',
                       border: '1px solid var(--border-subtle)',
                       borderRadius: '8px',
                       color: '#f8fafc',
                       fontSize: '13px',
-                      outline: 'none'
+                      outline: 'none',
+                      cursor: 'pointer'
                     }}
-                  />
+                  >
+                    <option value="" style={{ background: '#0f172a' }}>All Departure Airports</option>
+                    {airports.map(a => (
+                      <option key={a.code} value={a.city} style={{ background: '#0f172a' }}>
+                        {a.city} ({a.code})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>To (Destination)</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Mumbai, Goa, Bengaluru..."
+                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 600 }}>To (Destination)</label>
+                  <select
                     value={searchParams.to}
                     onChange={(e) => setSearchParams({ ...searchParams, to: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: 'rgba(255, 255, 255, 0.05)',
                       border: '1px solid var(--border-subtle)',
                       borderRadius: '8px',
                       color: '#f8fafc',
                       fontSize: '13px',
-                      outline: 'none'
+                      outline: 'none',
+                      cursor: 'pointer'
                     }}
-                  />
+                  >
+                    <option value="" style={{ background: '#0f172a' }}>All Arrival Airports</option>
+                    {airports.map(a => (
+                      <option key={a.code} value={a.city} style={{ background: '#0f172a' }}>
+                        {a.city} ({a.code})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Travel Date</label>
+                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Travel Date</label>
                   <input
                     type="date"
                     value={searchParams.date}
@@ -273,7 +285,7 @@ export default function UserPortal({ user, onLogout }) {
                 </div>
 
                 <div>
-                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px' }}>Passengers</label>
+                  <label style={{ fontSize: '12px', color: '#94a3b8', display: 'block', marginBottom: '6px', fontWeight: 600 }}>Passengers</label>
                   <input
                     type="number"
                     min="1"
@@ -283,7 +295,7 @@ export default function UserPortal({ user, onLogout }) {
                     style={{
                       width: '100%',
                       padding: '10px 12px',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: 'rgba(255, 255, 255, 0.05)',
                       border: '1px solid var(--border-subtle)',
                       borderRadius: '8px',
                       color: '#f8fafc',
@@ -292,6 +304,7 @@ export default function UserPortal({ user, onLogout }) {
                     }}
                   />
                 </div>
+
 
                 <button
                   type="submit"
