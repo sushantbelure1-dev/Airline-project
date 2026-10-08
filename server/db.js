@@ -261,7 +261,13 @@ if (weatherCount === 0) {
   }
 }
 
+// Migration for existing databases that were created before OTP verification columns were added
+try { db.exec(`ALTER TABLE users ADD COLUMN isVerified INTEGER NOT NULL DEFAULT 1;`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN otpCode TEXT;`); } catch (e) {}
+try { db.exec(`ALTER TABLE users ADD COLUMN otpExpiresAt DATETIME;`); } catch (e) {}
+
 console.log('✅ SQLite Database schema verified and up-to-date with Crew, Flight Roster & Weather tables.');
 
 export default db;
+
 
