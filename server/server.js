@@ -148,8 +148,9 @@ app.post('/api/auth/login', async (req, res) => {
 
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim());
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials. User not found.' });
+      return res.status(401).json({ success: false, message: 'No registered account found with this email. Please click Register to create your account.' });
     }
+
 
     const isMatch = bcrypt.compareSync(password, user.password);
     if (!isMatch) {
