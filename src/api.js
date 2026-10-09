@@ -789,11 +789,11 @@ export const api = {
     });
   },
 
-  async createBooking(flightId, passengers) {
+  async createBooking(flightId, passengers, travelClass = 'Economy') {
     return safeFetch('/bookings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify({ flightId, passengers })
+      body: JSON.stringify({ flightId, passengers, travelClass })
     }, async () => {
       const flights = mockStore.getFlights();
       const flight = flights.find(f => f.id === Number(flightId) || f.id === flightId);
@@ -808,11 +808,15 @@ export const api = {
       flight.availableSeats -= passengerCount;
       mockStore.setFlights(flights);
 
+      const classMultipliers = { 'Economy': 1.0, 'Business': 1.5, 'First Class': 2.0 };
+      const multiplier = classMultipliers[travelClass] || 1.0;
+      const baseFare = flight.calculatedPrice || flight.price || 2500;
+      const pricePerPassenger = Math.round(baseFare * multiplier);
+      const totalAmount = pricePerPassenger * passengerCount;
+
       const bookingId = `BK${Date.now().toString().slice(-8)}`;
       const pnr = `PNR${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       const ticketId = `TKT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
-      const pricePerPassenger = flight.calculatedPrice;
-      const totalAmount = pricePerPassenger * passengerCount;
 
       const assignedPassengers = passengers.map((p, idx) => ({
         ...p,
@@ -824,6 +828,7 @@ export const api = {
         bookingId,
         userId: user.id,
         flightId: flight.id,
+        travelClass,
         passengerCount,
         pricePerPassenger,
         totalAmount,

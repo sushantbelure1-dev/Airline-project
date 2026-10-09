@@ -6,15 +6,59 @@ import {
 import { api } from './api';
 
 export default function BookingModal({ flight, user, onClose, onBookingSuccess }) {
+  const [selectedClass, setSelectedClass] = useState('Economy'); // 'Economy', 'Business', 'First Class'
   const [passengers, setPassengers] = useState([
     { name: user?.name || '', age: 28, gender: 'Male', email: user?.email || '', phone: '' }
   ]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Travel Class Configuration & Dynamic Fare Calculation
+  const totalSeats = flight.availableSeats || 50;
+  const classConfig = {
+    'Economy': {
+      label: 'Economy Class',
+      multiplier: 1.0,
+      badgeColor: '#10b981',
+      bgColor: 'rgba(16, 185, 129, 0.08)',
+      borderColor: 'rgba(16, 185, 129, 0.3)',
+      seatsAvailable: Math.max(1, Math.floor(totalSeats * 0.70)),
+      baggage: '15 kg Check-in + 7 kg Hand Luggage',
+      icon: '💺',
+      features: ['Standard Recline', 'In-flight Snack', 'USB Power Port']
+    },
+    'Business': {
+      label: 'Business Class',
+      multiplier: 1.5,
+      badgeColor: '#38bdf8',
+      bgColor: 'rgba(56, 189, 248, 0.08)',
+      borderColor: 'rgba(56, 189, 248, 0.3)',
+      seatsAvailable: Math.max(1, Math.floor(totalSeats * 0.20)),
+      baggage: '30 kg Check-in + Priority Boarding',
+      icon: '🥂',
+      features: ['Extra Legroom (40")', 'Gourmet Hot Meal', 'Priority Check-in']
+    },
+    'First Class': {
+      label: 'First Class VIP',
+      multiplier: 2.0,
+      badgeColor: '#a855f7',
+      bgColor: 'rgba(168, 85, 247, 0.08)',
+      borderColor: 'rgba(168, 85, 247, 0.3)',
+      seatsAvailable: Math.max(1, Math.floor(totalSeats * 0.10)),
+      baggage: '40 kg Check-in + VIP Lounge Access',
+      icon: '👑',
+      features: ['Lie-Flat Private Suite', 'Premium Dining & Drinks', 'Chauffeur Service']
+    }
+  };
+
+  const currentClassInfo = classConfig[selectedClass];
+  const baseFare = flight.calculatedPrice || flight.price || 2500;
+  const pricePerPassenger = Math.round(baseFare * currentClassInfo.multiplier);
+  const totalAmount = pricePerPassenger * passengers.length;
+
   const addPassenger = () => {
-    if (passengers.length >= (flight.availableSeats || 1)) {
-      alert(`Cannot exceed ${flight.availableSeats} available seat(s).`);
+    if (passengers.length >= currentClassInfo.seatsAvailable) {
+      alert(`Only ${currentClassInfo.seatsAvailable} seat(s) remaining in ${selectedClass}.`);
       return;
     }
     setPassengers(prev => [
@@ -23,17 +67,6 @@ export default function BookingModal({ flight, user, onClose, onBookingSuccess }
     ]);
   };
 
-  const removePassenger = (index) => {
-    if (passengers.length <= 1) return;
-    setPassengers(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const updatePassenger = (index, field, value) => {
-    setPassengers(prev => prev.map((p, i) => i === index ? { ...p, [field]: value } : p));
-  };
-
-  const pricePerPassenger = flight.calculatedPrice || 0;
-  const totalAmount = pricePerPassenger * passengers.length;
 
   const handleConfirmBooking = async (e) => {
     e.preventDefault();
@@ -49,7 +82,7 @@ export default function BookingModal({ flight, user, onClose, onBookingSuccess }
 
     setLoading(true);
     try {
-      const data = await api.createBooking(flight.id, passengers);
+      const data = await api.createBooking(flight.id, passengers, selectedClass);
       if (data.success) {
         onBookingSuccess(data.ticket);
       } else {
@@ -151,6 +184,66 @@ export default function BookingModal({ flight, user, onClose, onBookingSuccess }
           </div>
         </div>
 
+        {/* Select Travel Class & Available Seats Tier */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#e2e8f0' }}>Select Travel Class Tier</h4>
+            <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+              Selected: <strong style={{ color: currentClassInfo.badgeColor }}>{currentClassInfo.label}</strong> ({currentClassInfo.seatsAvailable} seats left)
+            </span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+            {Object.keys(classConfig).map((cKey) => {
+              const c = classConfig[cKey];
+              const isSelected = selectedClass === cKey;
+              const classFare = Math.round(baseFare * c.multiplier);
+
+              return (
+                <div
+                  key={cKey}
+                  onClick={() => setSelectedClass(cKey)}
+                  style={{
+                    padding: '12px',
+                    borderRadius: '12px',
+                    background: isSelected ? c.bgColor : 'rgba(255, 255, 255, 0.02)',
+                    border: isSelected ? `2px solid ${c.badgeColor}` : '1px solid var(--border-subtle)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '18px' }}>{c.icon}</span>
+                    <span style={{
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      background: isSelected ? c.badgeColor : 'rgba(255, 255, 255, 0.08)',
+                      color: isSelected ? '#000000' : '#94a3b8'
+                    }}>
+                      {c.seatsAvailable} Seats
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#f8fafc', marginTop: '8px' }}>
+                    {c.label}
+                  </div>
+
+                  <div style={{ fontSize: '15px', fontWeight: 800, color: c.badgeColor, marginTop: '4px' }} className="mono-num">
+                    Rs {classFare.toLocaleString()} <span style={{ fontSize: '10px', color: '#94a3b8', fontWeight: 400 }}>/ pax</span>
+                  </div>
+
+                  <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '6px', borderTop: '1px dashed var(--border-subtle)', paddingTop: '6px' }}>
+                    🧳 {c.baggage}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {error && (
           <div style={{
             display: 'flex',
@@ -167,6 +260,7 @@ export default function BookingModal({ flight, user, onClose, onBookingSuccess }
             <AlertCircle size={16} /> {error}
           </div>
         )}
+
 
         {/* Passenger Information Form */}
         <form onSubmit={handleConfirmBooking}>
